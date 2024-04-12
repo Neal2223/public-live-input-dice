@@ -2,6 +2,7 @@ import os
 import streamlit as st
 import pymongo
 from datetime import datetime
+import pytz
 
 # MongoDB configuration
 try:
@@ -20,9 +21,11 @@ except pymongo.errors.ConnectionFailure as e:
     st.error(f"Error connecting to MongoDB: {e}")
     exit(1)
 
-# Function to generate a unique timestamp
+# Function to generate a unique timestamp in IST
 def generate_timestamp():
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ist = pytz.timezone('Asia/Kolkata')  # IST timezone
+    timestamp = datetime.now(ist)
+    return timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
 # Streamlit app
 def main():
