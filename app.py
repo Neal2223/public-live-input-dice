@@ -3,6 +3,7 @@ import streamlit as st
 import pymongo
 from datetime import datetime
 import pytz
+import pandas as pd
 
 # MongoDB configuration
 try:
@@ -51,7 +52,15 @@ def main():
     # Display the recorded data
     st.subheader("Recorded Data")
     data = collection.find({}, {'_id': 0})  # Exclude the _id field from the result
-    st.write(list(data))
+
+    # Convert the MongoDB cursor to a Pandas DataFrame
+    data_df = pd.DataFrame(list(data))
+
+    # Display the data in a tabular view
+    if not data_df.empty:
+        st.table(data_df)
+    else:
+        st.write("No data available")
 
 if __name__ == '__main__':
     main()
