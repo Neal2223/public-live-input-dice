@@ -40,21 +40,23 @@ def main():
         # Append the input data to the data_df
         data_df = pd.concat([data_df, input_data], ignore_index=True)
 
-        # Save the data to MongoDB
-        try:
-            with pymongo.MongoClient(os.environ.get('MONGO_URI')) as mongo_client:
-                db_name = os.environ.get('MONGO_DB_NAME', 'dice_app')
-                db = mongo_client[db_name]
+        # Batch inserts
+        if len(data_df) >= 3:
+            try:
+                with pymongo.MongoClient(os.environ.get('MONGO_URI')) as mongo_client:
+                    db_name = os.environ.get('MONGO_DB_NAME', 'dice_app')
+                    db = mongo_client[db_name]
 
-                collection_name = os.environ.get('MONGO_COLLECTION_NAME', 'dice_values')
-                collection = db[collection_name]
+                    collection_name = os.environ.get('MONGO_COLLECTION_NAME', 'dice_values')
+                    collection = db.create_collection(collection_name, capped=True, size=1024 * 1024, max=50)
 
-                data_dict = input_data.to_dict('records')[0]  # Convert DataFrame row to dictionary
-                collection.insert_one(data_dict)
-                st.success("Data saved to MongoDB successfully.")
+                    data_dict = data_df.to_dict('records')
+                    collection.insert_many(data_dict)
+                    st.success("Data saved to MongoDB successfully.")
+                    data_df = pd.DataFrame(columns=['Dice_1', 'Dice_2', 'Dice_3', 'Timestamp'])  # Reset data_df
 
-        except pymongo.errors.ConnectionFailure as e:
-            st.error(f"Error connecting to MongoDB: {e}")
+            except pymongo.errors.ConnectionFailure as e:
+                st.error(f"Error connecting to MongoDB: {e}")
 
     # Display the recorded data with newest entries at the top
     st.subheader("Recorded Data")
