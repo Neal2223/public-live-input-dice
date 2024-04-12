@@ -5,11 +5,17 @@ from datetime import datetime
 
 # MongoDB configuration
 try:
-    mongo_client = pymongo.MongoClient(os.environ.get('MONGO_URI', 'mongodb://localhost:27017'))
+    mongo_client = pymongo.MongoClient(os.environ.get('MONGO_URI'))
     db_name = os.environ.get('MONGO_DB_NAME', 'dice_app')
-    collection_name = os.environ.get('MONGO_COLLECTION_NAME', 'dice_values')
     db = mongo_client[db_name]
-    collection = db[collection_name]
+
+    try:
+        collection_name = os.environ.get('MONGO_COLLECTION_NAME', 'dice_values')
+        collection = db[collection_name]
+    except Exception as e:
+        st.error(f"Error creating collection: {e}")
+        exit(1)
+
 except pymongo.errors.ConnectionFailure as e:
     st.error(f"Error connecting to MongoDB: {e}")
     exit(1)
