@@ -1,7 +1,12 @@
 import os
 import streamlit as st
 import pymongo
+pymongo.MongoClient.OPTIONS = pymongo.MongoClient.OPTIONS.copy()
+pymongo.MongoClient.OPTIONS.pop('tlsAllowInvalidHostnames', None)
+
 from datetime import datetime
+
+
 
 # MongoDB configuration
 try:
