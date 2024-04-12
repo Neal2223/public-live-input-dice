@@ -16,12 +16,13 @@ def main():
     st.title("Dice Value Recorder")
 
     # Initialize an empty DataFrame to store the data
-    data_df = pd.DataFrame(columns=['Dice_1', 'Dice_2', 'Dice_3', 'Timestamp'])
+    if 'data_df' not in st.session_state:
+        st.session_state['data_df'] = pd.DataFrame(columns=['Dice_1', 'Dice_2', 'Dice_3', 'Timestamp'])
 
     # Input fields for dice values
-    dice_1 = st.number_input("Dice 1", min_value=1, max_value=6, step=1)
-    dice_2 = st.number_input("Dice 2", min_value=1, max_value=6, step=1)
-    dice_3 = st.number_input("Dice 3", min_value=1, max_value=6, step=1)
+    dice_1 = st.number_input("Dice 1", min_value=1, max_value=6, step=1, key="dice_1")
+    dice_2 = st.number_input("Dice 2", min_value=1, max_value=6, step=1, key="dice_2")
+    dice_3 = st.number_input("Dice 3", min_value=1, max_value=6, step=1, key="dice_3")
 
     # Create a DataFrame row with the input values
     input_data = pd.DataFrame({
@@ -38,7 +39,7 @@ def main():
     # Commit button
     if st.button("Commit"):
         # Append the input data to the data_df
-        data_df = pd.concat([data_df, input_data], ignore_index=True)
+        st.session_state['data_df'] = pd.concat([st.session_state['data_df'], input_data], ignore_index=True)
 
         # Save the data to MongoDB
         try:
@@ -58,7 +59,7 @@ def main():
 
     # Display the recorded data with newest entries at the top
     st.subheader("Recorded Data")
-    recorded_data = data_df.sort_index(ascending=False)
+    recorded_data = st.session_state['data_df'].sort_index(ascending=False)
     st.table(recorded_data)
 
 if __name__ == '__main__':
