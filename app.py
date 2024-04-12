@@ -5,23 +5,6 @@ from datetime import datetime
 import pytz
 import pandas as pd
 
-# MongoDB configuration
-try:
-    mongo_client = pymongo.MongoClient(os.environ.get('MONGO_URI'))
-    db_name = os.environ.get('MONGO_DB_NAME', 'dice_app')
-    db = mongo_client[db_name]
-
-    try:
-        collection_name = os.environ.get('MONGO_COLLECTION_NAME', 'dice_values')
-        collection = db[collection_name]
-    except Exception as e:
-        st.error(f"Error creating collection: {e}")
-        exit(1)
-
-except pymongo.errors.ConnectionFailure as e:
-    st.error(f"Error connecting to MongoDB: {e}")
-    exit(1)
-
 # Function to generate a unique timestamp in IST
 def generate_timestamp():
     ist = pytz.timezone('Asia/Kolkata')  # IST timezone
@@ -32,35 +15,51 @@ def generate_timestamp():
 def main():
     st.title("Dice Value Recorder")
 
+    # Initialize an empty DataFrame to store the data
+    data_df = pd.DataFrame(columns=['Dice_1', 'Dice_2', 'Dice_3', 'Timestamp'])
+
     # Input fields for dice values
     dice_1 = st.number_input("Dice 1", min_value=1, max_value=6, step=1)
     dice_2 = st.number_input("Dice 2", min_value=1, max_value=6, step=1)
     dice_3 = st.number_input("Dice 3", min_value=1, max_value=6, step=1)
 
+    # Create a DataFrame row with the input values
+    input_data = pd.DataFrame({
+        'Dice_1': [dice_1],
+        'Dice_2': [dice_2],
+        'Dice_3': [dice_3],
+        'Timestamp': [generate_timestamp()]
+    })
+
+    # Display the input data in a tabular view
+    st.subheader("Input Data")
+    st.table(input_data)
+
     # Commit button
     if st.button("Commit"):
-        timestamp = generate_timestamp()
-        data = {
-            'Dice_1': dice_1,
-            'Dice_2': dice_2,
-            'Dice_3': dice_3,
-            'Timestamp': timestamp
-        }
-        collection.insert_one(data)
-        st.success("Data saved to MongoDB successfully.")
+        # Append the input data to the data_df
+        data_df = pd.concat([data_df, input_data], ignore_index=True)
 
-    # Display the recorded data
+        # Save the data to MongoDB
+        try:
+            with pymongo.MongoClient(os.environ.get('MONGO_URI')) as mongo_client:
+                db_name = os.environ.get('MONGO_DB_NAME', 'dice_app')
+                db = mongo_client[db_name]
+
+                collection_name = os.environ.get('MONGO_COLLECTION_NAME', 'dice_values')
+                collection = db[collection_name]
+
+                data_dict = input_data.to_dict('records')[0]  # Convert DataFrame row to dictionary
+                collection.insert_one(data_dict)
+                st.success("Data saved to MongoDB successfully.")
+
+        except pymongo.errors.ConnectionFailure as e:
+            st.error(f"Error connecting to MongoDB: {e}")
+
+    # Display the recorded data with newest entries at the top
     st.subheader("Recorded Data")
-    data = collection.find({}, {'_id': 0})  # Exclude the _id field from the result
-
-    # Convert the MongoDB cursor to a Pandas DataFrame
-    data_df = pd.DataFrame(list(data))
-
-    # Display the data in a tabular view
-    if not data_df.empty:
-        st.table(data_df)
-    else:
-        st.write("No data available")
+    recorded_data = data_df.sort_index(ascending=False)
+    st.table(recorded_data)
 
 if __name__ == '__main__':
     main()
